@@ -1,3 +1,7 @@
+Here’s a detailed GitHub documentation (README.md style) for your `Diff-Gantt` project:
+
+---
+
 # Diff-Gantt
 
 **Diff-Gantt** is a web-based tool for **visualizing row-level changes between two dataset versions** in CSV format. It generates a **timeline (Gantt-style) visualization** of inserts, updates, and deletions, making it easier to understand data evolution over time.
@@ -95,7 +99,7 @@ This is a client-side app — no server required.
 1. **Clone the Repository**
 
    ```bash
-   git clone https://github.com/your-username/diff-gantt.git
+   git clone https://github.com/lucifer007-coder/diff-gantt.git
    cd diff-gantt
    ```
 
@@ -152,13 +156,19 @@ This is a client-side app — no server required.
   * Draws the interactive timeline.
   * Handles click detection on chart items.
 
-CSV Parsing**
+* **CSV Parsing**
 
   * Supports quoted fields, escaped quotes, and trimming.
   * Detects duplicate headers and column mismatches.
 
+---
+
 ## 🔒 File Size & Format Validation
 
-Max size: 10 MB
-Formats: `.csv`
-Primary key uniqueness is validated in both datasets before diff generation.
+* **Max size:** 10 MB
+* **Formats:** `.csv`
+* Primary key uniqueness is validated in both datasets before diff generation.
+
+
+If you want, I can also create a **GitHub Wiki page structure** for documenting advanced usage (like performance optimization, CSV format quirks, and code extension points).
+Do you want me to prepare that next?
