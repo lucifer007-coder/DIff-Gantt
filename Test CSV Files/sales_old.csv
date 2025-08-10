@@ -1,0 +1,5 @@
+tx_id,product,amount,date
+T100,Apple,10,2023-10-01
+T101,Banana,5,2023-10-02
+T102,Carrot,7,2023-10-03
+T103,Apple,12,2023-10-04
