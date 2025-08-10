@@ -36,7 +36,7 @@
 ## 📂 Project Structure
 
 ```
-home.html
+index.html
 ```
 
 The entire project is contained in a **single HTML file** with embedded CSS and JavaScript:
@@ -94,7 +94,7 @@ This is a client-side app — no server required.
 
 1. **Clone the Repository**
 2. **Open in Browser:**
-   * Simply open `home.html` in your browser.
+   * Simply open `index.html` in your browser.
 
 ---
 
