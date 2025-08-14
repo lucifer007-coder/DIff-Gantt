@@ -1,1596 +1,418 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diff-Gantt - Dataset Version Comparison Tool</title>
-    <style>
-        :root {
-            --bg-primary: #ffffff;
-            --bg-secondary: #f8f9fa;
-            --bg-tertiary: #e9ecef;
-            --text-primary: #212529;
-            --text-secondary: #6c757d;
-            --border-color: #dee2e6;
-            --accent-color: #007bff;
-            --success-color: #28a745;
-            --warning-color: #ffc107;
-            --danger-color: #dc3545;
-            --insert-color: #28a745;
-            --update-color: #ffc107;
-            --delete-color: #dc3545;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Diff‑Gantt — Dataset Version Comparison</title>
+  <style>
+    :root{
+      --bg-1:#ffffff;--bg-2:#f6f7f9;--bg-3:#e9edf3;--text-1:#1f2328;--text-2:#6b7280;--border:#d0d7de;--accent:#3b82f6;--ok:#22c55e;--warn:#f59e0b;--bad:#ef4444;--ins:#22c55e;--upd:#f59e0b;--del:#ef4444
+    }
+    @media (prefers-color-scheme:dark){:root{--bg-1:#0b0f14;--bg-2:#0f1520;--bg-3:#172033;--text-1:#e5e7eb;--text-2:#a3aab8;--border:#263248;--accent:#60a5fa;--ok:#4ade80;--warn:#fbbf24;--bad:#f87171;--ins:#4ade80;--upd:#fbbf24;--del:#f87171}}
+    *{box-sizing:border-box}html,body{height:100%}
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Inter,"Helvetica Neue",Arial;line-height:1.5;background:var(--bg-1);color:var(--text-1)}
+    .container{max-width:1200px;margin:0 auto;padding:16px}
+    header{margin:8px 0 20px;text-align:center}
+    header h1{margin:0 0 6px;font-size:clamp(22px,2.8vw,32px);color:var(--accent)}
+    header p{margin:0;color:var(--text-2)}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg-primary: #1a1a1a;
-                --bg-secondary: #2d2d2d;
-                --bg-tertiary: #404040;
-                --text-primary: #ffffff;
-                --text-secondary: #b0b0b0;
-                --border-color: #555555;
-                --accent-color: #4dabf7;
-                --success-color: #51cf66;
-                --warning-color: #ffd43b;
-                --danger-color: #ff6b6b;
-                --insert-color: #51cf66;
-                --update-color: #ffd43b;
-                --delete-color: #ff6b6b;
-            }
-        }
+    .grid{display:grid;gap:16px;grid-template-columns:1fr 1fr}
+    @media (max-width:840px){.grid{grid-template-columns:1fr}}
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    .card{background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:18px}
+    .upload{position:relative;border:2px dashed var(--border);border-radius:12px;padding:26px;text-align:center;background:var(--bg-3);cursor:pointer;transition:.2s}
+    .upload:hover,.upload:focus-within{border-color:var(--accent)}
+    .upload.dragover{transform:scale(1.01);border-color:var(--accent)}
+    .upload h3{margin:0 0 6px}
+    .upload p{margin:0 0 8px;color:var(--text-2)}
+    .upload .fileinput{position:absolute;inset:0;opacity:0;cursor:pointer}
+    .btn{appearance:none;border:0;border-radius:10px;padding:10px 14px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;transition:.15s}
+    .btn[disabled]{opacity:.6;cursor:not-allowed}
+    .btn:hover:not([disabled]){opacity:.95;transform:translateY(-1px)}
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
-            line-height: 1.5;
-        }
+    .config{display:none}
+    .config .row{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+    label{font-weight:600}
+    select{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-1);color:var(--text-1)}
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 1rem;
-        }
+    .alert{border-radius:10px;padding:12px 14px;margin:10px 0}
+    .alert.error{background:rgba(239,68,68,.12);border:1px solid var(--bad);color:var(--bad)}
+    .alert.success{background:rgba(34,197,94,.12);border:1px solid var(--ok);color:var(--ok)}
 
-        .header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
+    .stats{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin:16px 0}
+    .stat{background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center}
+    .num{font-size:28px;font-weight:800}
+    .num.ins{color:var(--ins)}.num.upd{color:var(--upd)}.num.del{color:var(--del)}
 
-        .header h1 {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-            color: var(--accent-color);
-        }
+    .gantt-wrap{background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:12px}
+    .gantt-head{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:8px}
+    .legend{display:flex;gap:12px;flex-wrap:wrap}
+    .legend span{display:inline-flex;gap:8px;align-items:center}
+    .dot{width:14px;height:14px;border-radius:3px;display:inline-block}
+    .dot.ins{background:var(--ins)}.dot.upd{background:var(--upd)}.dot.del{background:var(--del)}
+    canvas{display:block;width:100%;border:1px solid var(--border);border-radius:8px}
 
-        .header p {
-            color: var(--text-secondary);
-            font-size: 1.1rem;
-        }
+    .drawer{position:fixed;top:0;right:-420px;width:420px;max-width:100vw;height:100vh;background:var(--bg-1);border-left:1px solid var(--border);box-shadow:-8px 0 24px rgba(0,0,0,.15);transition:right .25s ease;z-index:60;display:flex;flex-direction:column}
+    .drawer.open{right:0}
+    .drawer-head{position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);background:var(--bg-1)}
+    .drawer-body{padding:12px 14px;overflow:auto}
+    .x{background:none;border:0;font-size:24px;line-height:1;cursor:pointer;color:var(--text-1)}
 
-        .upload-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-            margin-bottom: 2rem;
-        }
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    th,td{border:1px solid var(--border);padding:8px 10px;text-align:left;word-break:break-word}
+    th{background:var(--bg-2)}
+    .added{background:rgba(34,197,94,.1)}
+    .removed{background:rgba(239,68,68,.1)}
+    .changed{background:rgba(245,158,11,.11)}
 
-        @media (max-width: 768px) {
-            .upload-section {
-                grid-template-columns: 1fr;
-                gap: 1rem;
-            }
-        }
-
-        .upload-area {
-            border: 2px dashed var(--border-color);
-            border-radius: 8px;
-            padding: 2rem;
-            text-align: center;
-            background-color: var(--bg-secondary);
-            transition: all 0.3s ease;
-            cursor: pointer;
-            position: relative;
-        }
-
-        .upload-area:hover,
-        .upload-area:focus-within {
-            border-color: var(--accent-color);
-            background-color: var(--bg-tertiary);
-        }
-
-        .upload-area.dragover {
-            border-color: var(--accent-color);
-            background-color: var(--bg-tertiary);
-            transform: scale(1.02);
-        }
-
-        .upload-area h3 {
-            margin-bottom: 1rem;
-            color: var(--text-primary);
-        }
-
-        .upload-area p {
-            color: var(--text-secondary);
-            margin-bottom: 1rem;
-        }
-
-        .file-input {
-            position: absolute;
-            opacity: 0;
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
-        }
-
-        .btn {
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .btn:hover:not(:disabled) {
-            opacity: 0.9;
-            transform: translateY(-1px);
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .btn:focus {
-            outline: 2px solid var(--accent-color);
-            outline-offset: 2px;
-        }
-
-        .config-section {
-            background-color: var(--bg-secondary);
-            padding: 1.5rem;
-            border-radius: 8px;
-            margin-bottom: 2rem;
-        }
-
-        .config-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .form-group label {
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .form-group select {
-            padding: 0.5rem;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
-            transition: border-color 0.3s ease;
-        }
-
-        .form-group select:focus {
-            outline: none;
-            border-color: var(--accent-color);
-        }
-
-        .error-message {
-            background-color: var(--danger-color);
-            color: white;
-            padding: 1rem;
-            border-radius: 4px;
-            margin-bottom: 1rem;
-            animation: slideIn 0.3s ease;
-        }
-
-        .success-message {
-            background-color: var(--success-color);
-            color: white;
-            padding: 1rem;
-            border-radius: 4px;
-            margin-bottom: 1rem;
-            animation: slideIn 0.3s ease;
-        }
-
-        @keyframes slideIn {
-            from { transform: translateY(-20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        .gantt-container {
-            background-color: var(--bg-secondary);
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .gantt-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .legend {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .legend-color {
-            width: 16px;
-            height: 16px;
-            border-radius: 2px;
-        }
-
-        .legend-color.insert { background-color: var(--insert-color); }
-        .legend-color.update { background-color: var(--update-color); }
-        .legend-color.delete { background-color: var(--delete-color); }
-
-        #ganttCanvas {
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            cursor: pointer;
-            width: 100%;
-            display: block;
-        }
-
-        .drawer {
-            position: fixed;
-            top: 0;
-            right: -400px;
-            width: 400px;
-            height: 100vh;
-            background-color: var(--bg-primary);
-            border-left: 1px solid var(--border-color);
-            box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
-            transition: right 0.3s ease;
-            z-index: 1000;
-            overflow-y: auto;
-        }
-
-        .drawer.open {
-            right: 0;
-        }
-
-        @media (max-width: 768px) {
-            .drawer {
-                width: 100vw;
-                right: -100vw;
-            }
-        }
-
-        .drawer-header {
-            padding: 1rem;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            background-color: var(--bg-primary);
-        }
-
-        .drawer-close {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: var(--text-primary);
-            padding: 0.25rem;
-            border-radius: 4px;
-            transition: background-color 0.3s ease;
-        }
-
-        .drawer-close:hover {
-            background-color: var(--bg-secondary);
-        }
-
-        .drawer-close:focus {
-            outline: 2px solid var(--accent-color);
-        }
-
-        .drawer-content {
-            padding: 1rem;
-        }
-
-        .diff-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 1rem;
-        }
-
-        .diff-table th,
-        .diff-table td {
-            padding: 0.5rem;
-            border: 1px solid var(--border-color);
-            text-align: left;
-            word-break: break-word;
-        }
-
-        .diff-table th {
-            background-color: var(--bg-secondary);
-            font-weight: 600;
-        }
-
-        .diff-added {
-            background-color: rgba(40, 167, 69, 0.1);
-        }
-
-        .diff-removed {
-            background-color: rgba(220, 53, 69, 0.1);
-        }
-
-        .diff-changed {
-            background-color: rgba(255, 193, 7, 0.1);
-        }
-
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-card {
-            background-color: var(--bg-secondary);
-            padding: 1rem;
-            border-radius: 8px;
-            text-align: center;
-            transition: transform 0.3s ease;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-2px);
-        }
-
-        .stat-number {
-            font-size: 2rem;
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-        }
-
-        .stat-number.insert { color: var(--insert-color); }
-        .stat-number.update { color: var(--update-color); }
-        .stat-number.delete { color: var(--delete-color); }
-
-        .loading {
-            text-align: center;
-            padding: 2rem;
-            color: var(--text-secondary);
-        }
-
-        .spinner {
-            border: 3px solid var(--border-color);
-            border-top: 3px solid var(--accent-color);
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .file-info {
-            margin-top: 1rem;
-            padding: 0.5rem;
-            background-color: var(--bg-tertiary);
-            border-radius: 4px;
-            font-size: 0.9rem;
-        }
-
-        .file-name {
-            font-weight: bold;
-            color: var(--success-color);
-        }
-
-        .file-size {
-            color: var(--text-secondary);
-            font-size: 0.8rem;
-        }
-
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            border: 0;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 4px;
-            background-color: var(--bg-tertiary);
-            border-radius: 2px;
-            overflow: hidden;
-            margin-top: 1rem;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background-color: var(--accent-color);
-            transition: width 0.3s ease;
-            width: 0%;
-        }
-    </style>
+    .loading{display:none;text-align:center;color:var(--text-2)}
+    .spinner{width:28px;height:28px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--accent);margin:10px auto;animation:spin 1s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
 </head>
 <body>
-    <div class="container">
-        <header class="header">
-            <h1>Diff-Gantt</h1>
-            <p>Visualize row-level changes between dataset versions</p>
-        </header>
+  <div class="container">
+    <header>
+      <h1>Diff‑Gantt</h1>
+      <p>Visualize row‑level changes between two CSV versions</p>
+    </header>
 
-        <div id="errorContainer" aria-live="polite"></div>
-        <div id="successContainer" aria-live="polite"></div>
+    <div id="alerts" aria-live="polite"></div>
 
-        <section class="upload-section">
-            <div class="upload-area" id="oldFileArea" tabindex="0" role="button" aria-label="Upload old dataset">
-                <h3>Old Dataset</h3>
-                <p>Drop CSV file here or click to browse</p>
-                <button type="button" class="btn" id="oldFileBtn">
-                    Choose File
-                </button>
-                <input type="file" id="oldFileInput" class="file-input" accept=".csv" aria-label="Select old dataset file" />
-                <div id="oldFileInfo" class="file-info" style="display: none;"></div>
-            </div>
-
-            <div class="upload-area" id="newFileArea" tabindex="0" role="button" aria-label="Upload new dataset">
-                <h3>New Dataset</h3>
-                <p>Drop CSV file here or click to browse</p>
-                <button type="button" class="btn" id="newFileBtn">
-                    Choose File
-                </button>
-                <input type="file" id="newFileInput" class="file-input" accept=".csv" aria-label="Select new dataset file" />
-                <div id="newFileInfo" class="file-info" style="display: none;"></div>
-            </div>
-        </section>
-
-        <section class="config-section" id="configSection" style="display: none;">
-            <h3>Configuration</h3>
-            <div class="config-grid">
-                <div class="form-group">
-                    <label for="primaryKeySelect">Primary Key Column *</label>
-                    <select id="primaryKeySelect" required>
-                        <option value="">Select primary key...</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="timestampSelect">Timestamp Column (Optional)</label>
-                    <select id="timestampSelect">
-                        <option value="">Select timestamp...</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>&nbsp;</label>
-                    <button type="button" class="btn" id="generateDiffBtn">
-                        Generate Diff
-                    </button>
-                </div>
-            </div>
-        </section>
-
-        <div id="loadingContainer" style="display: none;">
-            <div class="loading">
-                <div class="spinner"></div>
-                <p>Processing datasets...</p>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill"></div>
-                </div>
-            </div>
+    <section class="grid" aria-label="Upload CSV files">
+      <div class="card">
+        <div id="oldArea" class="upload" tabindex="0" role="button" aria-label="Upload old dataset">
+          <h3>Old Dataset</h3>
+          <p>Drop CSV here or click to browse</p>
+          <button class="btn" type="button">Choose File</button>
+          <input id="oldInput" class="fileinput" type="file" accept=".csv" />
+          <div id="oldInfo" style="margin-top:8px;display:none"></div>
         </div>
-
-        <div id="resultsContainer" style="display: none;">
-            <div class="stats">
-                <div class="stat-card">
-                    <div class="stat-number insert" id="insertCount">0</div>
-                    <div>Inserted</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number update" id="updateCount">0</div>
-                    <div>Updated</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number delete" id="deleteCount">0</div>
-                    <div>Deleted</div>
-                </div>
-            </div>
-
-            <div class="gantt-container">
-                <div class="gantt-header">
-                    <h3>Timeline Visualization</h3>
-                    <div class="legend">
-                        <div class="legend-item">
-                            <div class="legend-color insert"></div>
-                            <span>Insert</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color update"></div>
-                            <span>Update</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color delete"></div>
-                            <span>Delete</span>
-                        </div>
-                    </div>
-                </div>
-                <canvas id="ganttCanvas" role="img" aria-label="Gantt chart showing dataset changes over time"></canvas>
-            </div>
+      </div>
+      <div class="card">
+        <div id="newArea" class="upload" tabindex="0" role="button" aria-label="Upload new dataset">
+          <h3>New Dataset</h3>
+          <p>Drop CSV here or click to browse</p>
+          <button class="btn" type="button">Choose File</button>
+          <input id="newInput" class="fileinput" type="file" accept=".csv" />
+          <div id="newInfo" style="margin-top:8px;display:none"></div>
         </div>
+      </div>
+    </section>
 
-        <div class="drawer" id="detailDrawer" role="dialog" aria-labelledby="drawerTitle" aria-hidden="true">
-            <div class="drawer-header">
-                <h3 id="drawerTitle">Row Details</h3>
-                <button type="button" class="drawer-close" id="drawerCloseBtn" aria-label="Close details panel">&times;</button>
-            </div>
-            <div class="drawer-content" id="drawerContent">
-                <!-- Detail content will be populated here -->
-            </div>
+    <section id="config" class="card config" aria-label="Configuration">
+      <h3 style="margin-top:0">Configuration</h3>
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label for="pkSelect">Primary Key Column *</label>
+          <select id="pkSelect"><option value="">Select primary key…</option></select>
         </div>
+        <div>
+          <label for="tsSelect">Timestamp Column (optional)</label>
+          <select id="tsSelect"><option value="">Select timestamp…</option></select>
+        </div>
+        <div style="display:flex;align-items:end">
+          <button id="go" class="btn" type="button">Generate Diff</button>
+        </div>
+      </div>
+    </section>
+
+    <div id="loading" class="loading" role="status" aria-live="polite">
+      <div class="spinner"></div>
+      <div>Processing datasets…</div>
     </div>
 
-    <script>
-        'use strict';
-
-        class DiffGanttApp {
-            constructor() {
-                this.oldData = null;
-                this.newData = null;
-                this.diffResults = null;
-                this.ganttChart = null;
-                this.resizeObserver = null;
-                this.eventListeners = new Map();
-                
-                // Configuration
-                this.config = {
-                    maxFileSize: 10 * 1024 * 1024, // 10MB
-                    supportedFormats: ['.csv'],
-                    chunkSize: 1000, // Process data in chunks
-                    timeoutDuration: 30000 // 30 seconds timeout
-                };
-
-                this.init();
-            }
-
-            init() {
-                this.setupEventListeners();
-                this.initializeDragDrop();
-                this.setupKeyboardNavigation();
-            }
-
-            setupEventListeners() {
-                // File input handlers
-                this.addEventListener('oldFileBtn', 'click', () => this.triggerFileInput('oldFileInput'));
-                this.addEventListener('newFileBtn', 'click', () => this.triggerFileInput('newFileInput'));
-                this.addEventListener('oldFileInput', 'change', (e) => this.handleFileSelect(e.target.files[0], 'old'));
-                this.addEventListener('newFileInput', 'change', (e) => this.handleFileSelect(e.target.files[0], 'new'));
-                
-                // Upload area handlers
-                this.addEventListener('oldFileArea', 'click', () => this.triggerFileInput('oldFileInput'));
-                this.addEventListener('newFileArea', 'click', () => this.triggerFileInput('newFileInput'));
-                
-                // Configuration handlers
-                this.addEventListener('generateDiffBtn', 'click', () => this.generateDiff());
-                
-                // Drawer handlers
-                this.addEventListener('drawerCloseBtn', 'click', () => this.closeDrawer());
-                
-                // Global handlers
-                this.addEventListener(document, 'keydown', (e) => this.handleKeydown(e));
-                this.addEventListener(window, 'beforeunload', () => this.cleanup());
-            }
-
-            addEventListener(element, event, handler) {
-                const el = typeof element === 'string' ? document.getElementById(element) : element;
-                if (el) {
-                    el.addEventListener(event, handler);
-                    if (!this.eventListeners.has(el)) {
-                        this.eventListeners.set(el, []);
-                    }
-                    this.eventListeners.get(el).push({ event, handler });
-                }
-            }
-
-            cleanup() {
-                // Remove all event listeners
-                this.eventListeners.forEach((listeners, element) => {
-                    listeners.forEach(({ event, handler }) => {
-                        element.removeEventListener(event, handler);
-                    });
-                });
-                this.eventListeners.clear();
-
-                // Disconnect resize observer
-                if (this.resizeObserver) {
-                    this.resizeObserver.disconnect();
-                    this.resizeObserver = null;
-                }
-
-                // Cleanup gantt chart
-                if (this.ganttChart) {
-                    this.ganttChart.cleanup();
-                    this.ganttChart = null;
-                }
-            }
-
-            triggerFileInput(inputId) {
-                const input = document.getElementById(inputId);
-                if (input) {
-                    input.click();
-                }
-            }
-
-            initializeDragDrop() {
-                const areas = [
-                    { id: 'oldFileArea', type: 'old' },
-                    { id: 'newFileArea', type: 'new' }
-                ];
-
-                areas.forEach(({ id, type }) => {
-                    const area = document.getElementById(id);
-                    if (!area) return;
-
-                    this.addEventListener(area, 'dragover', (e) => {
-                        e.preventDefault();
-                        area.classList.add('dragover');
-                    });
-
-                    this.addEventListener(area, 'dragleave', (e) => {
-                        if (!area.contains(e.relatedTarget)) {
-                            area.classList.remove('dragover');
-                        }
-                    });
-
-                    this.addEventListener(area, 'drop', (e) => {
-                        e.preventDefault();
-                        area.classList.remove('dragover');
-                        const files = e.dataTransfer.files;
-                        if (files.length > 0) {
-                            this.handleFileSelect(files[0], type);
-                        }
-                    });
-                });
-            }
-
-            setupKeyboardNavigation() {
-                const uploadAreas = document.querySelectorAll('.upload-area');
-                uploadAreas.forEach(area => {
-                    this.addEventListener(area, 'keydown', (e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            area.click();
-                        }
-                    });
-                });
-            }
-
-            handleKeydown(e) {
-                if (e.key === 'Escape') {
-                    this.closeDrawer();
-                }
-            }
-
-            async handleFileSelect(file, type) {
-                if (!file) return;
-
-                try {
-                    this.validateFile(file);
-                    this.showFileInfo(file, type);
-                    
-                    const csvData = await this.parseCSVFile(file);
-                    
-                    if (type === 'old') {
-                        this.oldData = csvData;
-                    } else {
-                        this.newData = csvData;
-                    }
-                    
-                    if (this.oldData && this.newData) {
-                        this.setupConfiguration();
-                    }
-                    
-                } catch (error) {
-                    this.showError(`Error processing ${file.name}: ${error.message}`);
-                    this.clearFileInfo(type);
-                }
-            }
-
-            validateFile(file) {
-                if (file.size > this.config.maxFileSize) {
-                    throw new Error(`File is too large. Maximum size is ${this.formatFileSize(this.config.maxFileSize)}.`);
-                }
-
-                const extension = '.' + file.name.split('.').pop().toLowerCase();
-                if (!this.config.supportedFormats.includes(extension)) {
-                    throw new Error(`Unsupported file format. Supported formats: ${this.config.supportedFormats.join(', ')}`);
-                }
-            }
-
-            showFileInfo(file, type) {
-                const infoElement = document.getElementById(`${type}FileInfo`);
-                if (infoElement) {
-                    infoElement.innerHTML = `
-                        <div class="file-name">${this.escapeHtml(file.name)}</div>
-                        <div class="file-size">${this.formatFileSize(file.size)}</div>
-                    `;
-                    infoElement.style.display = 'block';
-                }
-            }
-
-            clearFileInfo(type) {
-                const infoElement = document.getElementById(`${type}FileInfo`);
-                if (infoElement) {
-                    infoElement.style.display = 'none';
-                }
-            }
-
-            formatFileSize(bytes) {
-                if (bytes === 0) return '0 Bytes';
-                const k = 1024;
-                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-                const i = Math.floor(Math.log(bytes) / Math.log(k));
-                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-            }
-
-            async parseCSVFile(file) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    
-                    reader.onload = (e) => {
-                        try {
-                            const csvData = this.parseCSV(e.target.result, file.name);
-                            resolve(csvData);
-                        } catch (error) {
-                            reject(error);
-                        }
-                    };
-                    
-                    reader.onerror = () => {
-                        reject(new Error('Failed to read file'));
-                    };
-                    
-                    reader.readAsText(file);
-                });
-            }
-
-            parseCSV(csvText, filename) {
-                if (!csvText || csvText.trim().length === 0) {
-                    throw new Error('CSV file is empty');
-                }
-
-                const lines = csvText.split(/\r?\n/).map(line => line.trim()).filter(line => line);
-                
-                if (lines.length === 0) {
-                    throw new Error('No valid data found in CSV file');
-                }
-
-                // Parse header
-                const headers = this.parseCSVLine(lines[0]);
-                if (headers.length === 0) {
-                    throw new Error('No headers found in CSV file');
-                }
-
-                // Check for duplicate headers
-                const headerSet = new Set();
-                headers.forEach(header => {
-                    if (headerSet.has(header)) {
-                        throw new Error(`Duplicate header found: ${header}`);
-                    }
-                    headerSet.add(header);
-                });
-
-                const data = [];
-                const primaryKeys = new Set();
-
-                // Parse data rows
-                for (let i = 1; i < lines.length; i++) {
-                    try {
-                        const values = this.parseCSVLine(lines[i]);
-                        
-                        if (values.length === 0) continue; // Skip empty lines
-                        
-                        if (values.length !== headers.length) {
-                            console.warn(`Line ${i + 1}: Column count mismatch (expected ${headers.length}, got ${values.length})`);
-                            continue;
-                        }
-                        
-                        const row = {};
-                        headers.forEach((header, index) => {
-                            row[header] = values[index] || '';
-                        });
-                        
-                        data.push(row);
-                    } catch (error) {
-                        console.warn(`Line ${i + 1}: ${error.message}`);
-                    }
-                }
-
-                if (data.length === 0) {
-                    throw new Error('No valid data rows found in CSV file');
-                }
-
-                return {
-                    headers,
-                    data,
-                    filename
-                };
-            }
-
-            parseCSVLine(line) {
-                const result = [];
-                let current = '';
-                let inQuotes = false;
-                let i = 0;
-
-                while (i < line.length) {
-                    const char = line[i];
-                    
-                    if (char === '"') {
-                        if (inQuotes && line[i + 1] === '"') {
-                            // Escaped quote
-                            current += '"';
-                            i += 2;
-                        } else {
-                            // Toggle quote state
-                            inQuotes = !inQuotes;
-                            i++;
-                        }
-                    } else if (char === ',' && !inQuotes) {
-                        // Field separator
-                        result.push(inQuotes ? current : current.trim());
-                        current = '';
-                        i++;
-                    } else {
-                        current += char;
-                        i++;
-                    }
-                }
-                
-                // Add the last field
-                result.push(inQuotes ? current : current.trim());
-                
-                return result;
-            }
-
-            setupConfiguration() {
-                const primaryKeySelect = document.getElementById('primaryKeySelect');
-                const timestampSelect = document.getElementById('timestampSelect');
-                
-                if (!primaryKeySelect || !timestampSelect) return;
-
-                // Clear existing options
-                primaryKeySelect.innerHTML = '<option value="">Select primary key...</option>';
-                timestampSelect.innerHTML = '<option value="">Select timestamp...</option>';
-
-                // Get common headers
-                const commonHeaders = this.oldData.headers.filter(header => 
-                    this.newData.headers.includes(header)
-                );
-
-                if (commonHeaders.length === 0) {
-                    this.showError('No common columns found between the two datasets.');
-                    return;
-                }
-
-                // Populate selects
-                commonHeaders.forEach(header => {
-                    const option1 = document.createElement('option');
-                    option1.value = header;
-                    option1.textContent = header;
-                    primaryKeySelect.appendChild(option1);
-
-                    const option2 = document.createElement('option');
-                    option2.value = header;
-                    option2.textContent = header;
-                    timestampSelect.appendChild(option2);
-                });
-
-                // Auto-detect primary key and timestamp columns
-                this.autoDetectColumns(commonHeaders, primaryKeySelect, timestampSelect);
-
-                document.getElementById('configSection').style.display = 'block';
-                this.clearMessages();
-            }
-
-            autoDetectColumns(headers, primaryKeySelect, timestampSelect) {
-                // Auto-detect primary key (look for id, key, etc.)
-                const primaryKeyPatterns = /^(id|key|pk|primary.*key|.*id)$/i;
-                const primaryKeyCandidate = headers.find(header => primaryKeyPatterns.test(header));
-                if (primaryKeyCandidate) {
-                    primaryKeySelect.value = primaryKeyCandidate;
-                }
-
-                // Auto-detect timestamp (look for date, time, timestamp, etc.)
-                const timestampPatterns = /^(date|time|timestamp|created.*at|updated.*at|.*date|.*time)$/i;
-                const timestampCandidate = headers.find(header => timestampPatterns.test(header));
-                if (timestampCandidate) {
-                    timestampSelect.value = timestampCandidate;
-                }
-            }
-
-            async generateDiff() {
-                const primaryKey = document.getElementById('primaryKeySelect')?.value;
-                const timestampCol = document.getElementById('timestampSelect')?.value;
-
-                if (!primaryKey) {
-                    this.showError('Please select a primary key column.');
-                    return;
-                }
-
-                try {
-                    this.showLoading(true);
-                    
-                    // Validate primary key uniqueness
-                    this.validatePrimaryKeyUniqueness(this.oldData.data, primaryKey, 'old dataset');
-                    this.validatePrimaryKeyUniqueness(this.newData.data, primaryKey, 'new dataset');
-                    
-                    // Process diff in chunks for better performance
-                    this.diffResults = await this.calculateDiffAsync(this.oldData, this.newData, primaryKey, timestampCol);
-                    
-                    this.displayResults();
-                    
-                } catch (error) {
-                    this.showError(`Error calculating diff: ${error.message}`);
-                } finally {
-                    this.showLoading(false);
-                }
-            }
-
-            validatePrimaryKeyUniqueness(data, primaryKey, datasetName) {
-                const keys = new Set();
-                const duplicates = new Set();
-                
-                data.forEach(row => {
-                    const key = row[primaryKey];
-                    if (keys.has(key)) {
-                        duplicates.add(key);
-                    } else {
-                        keys.add(key);
-                    }
-                });
-
-                if (duplicates.size > 0) {
-                    throw new Error(`Duplicate primary key values found in ${datasetName}: ${Array.from(duplicates).slice(0, 5).join(', ')}${duplicates.size > 5 ? '...' : ''}`);
-                }
-            }
-
-            async calculateDiffAsync(oldData, newData, primaryKey, timestampCol) {
-                return new Promise((resolve, reject) => {
-                    const timeout = setTimeout(() => {
-                        reject(new Error('Diff calculation timed out'));
-                    }, this.config.timeoutDuration);
-
-                    try {
-                        const result = this.calculateDiff(oldData, newData, primaryKey, timestampCol);
-                        clearTimeout(timeout);
-                        resolve(result);
-                    } catch (error) {
-                        clearTimeout(timeout);
-                        reject(error);
-                    }
-                });
-            }
-
-            calculateDiff(oldData, newData, primaryKey, timestampCol) {
-                const oldMap = new Map();
-                const newMap = new Map();
-                const results = {
-                    inserts: [],
-                    updates: [],
-                    deletes: [],
-                    primaryKey,
-                    timestampCol
-                };
-
-                // Build maps for efficient lookup
-                oldData.data.forEach(row => {
-                    oldMap.set(String(row[primaryKey]), row);
-                });
-
-                newData.data.forEach(row => {
-                    newMap.set(String(row[primaryKey]), row);
-                });
-
-                // Find inserts and updates
-                newMap.forEach((newRow, key) => {
-                    const oldRow = oldMap.get(key);
-                    if (!oldRow) {
-                        results.inserts.push({
-                            key,
-                            data: newRow,
-                            timestamp: this.parseTimestamp(newRow[timestampCol])
-                        });
-                    } else {
-                        const changes = this.findRowChanges(oldRow, newRow);
-                        if (changes.length > 0) {
-                            results.updates.push({
-                                key,
-                                oldData: oldRow,
-                                newData: newRow,
-                                changes,
-                                timestamp: this.parseTimestamp(newRow[timestampCol])
-                            });
-                        }
-                    }
-                });
-
-                // Find deletes
-                oldMap.forEach((oldRow, key) => {
-                    if (!newMap.has(key)) {
-                        results.deletes.push({
-                            key,
-                            data: oldRow,
-                            timestamp: this.parseTimestamp(oldRow[timestampCol])
-                        });
-                    }
-                });
-
-                return results;
-            }
-
-            findRowChanges(oldRow, newRow) {
-                const changes = [];
-                const allKeys = new Set([...Object.keys(oldRow), ...Object.keys(newRow)]);
-                
-                allKeys.forEach(key => {
-                    const oldValue = oldRow[key] || '';
-                    const newValue = newRow[key] || '';
-                    
-                    if (oldValue !== newValue) {
-                        changes.push({
-                            column: key,
-                            oldValue,
-                            newValue
-                        });
-                    }
-                });
-                
-                return changes;
-            }
-
-            parseTimestamp(value) {
-                if (!value || value === '' || value === 'null' || value === 'undefined') {
-                    return new Date();
-                }
-                
-                // Try various date formats
-                const formats = [
-                    // ISO formats
-                    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/,
-                    // Common date formats
-                    /^\d{4}-\d{2}-\d{2}/,
-                    /^\d{2}\/\d{2}\/\d{4}/,
-                    /^\d{2}-\d{2}-\d{4}/,
-                    // Unix timestamp
-                    /^\d{10}$/,
-                    /^\d{13}$/
-                ];
-
-                let parsed;
-                
-                // Try Unix timestamp first
-                if (/^\d{10}$/.test(value)) {
-                    parsed = new Date(parseInt(value) * 1000);
-                } else if (/^\d{13}$/.test(value)) {
-                    parsed = new Date(parseInt(value));
-                } else {
-                    parsed = new Date(value);
-                }
-
-                return isNaN(parsed.getTime()) ? new Date() : parsed;
-            }
-
-            showLoading(show) {
-                const container = document.getElementById('loadingContainer');
-                const resultsContainer = document.getElementById('resultsContainer');
-                
-                if (container) {
-                    container.style.display = show ? 'block' : 'none';
-                }
-                
-                if (resultsContainer && show) {
-                    resultsContainer.style.display = 'none';
-                }
-
-                // Update progress bar (simulated for now)
-                if (show) {
-                    this.updateProgressBar(0);
-                    setTimeout(() => this.updateProgressBar(50), 100);
-                    setTimeout(() => this.updateProgressBar(100), 200);
-                }
-            }
-
-            updateProgressBar(percentage) {
-                const progressFill = document.getElementById('progressFill');
-                if (progressFill) {
-                    progressFill.style.width = `${percentage}%`;
-                }
-            }
-
-            displayResults() {
-                const insertCount = document.getElementById('insertCount');
-                const updateCount = document.getElementById('updateCount');
-                const deleteCount = document.getElementById('deleteCount');
-                const resultsContainer = document.getElementById('resultsContainer');
-
-                if (insertCount) insertCount.textContent = this.diffResults.inserts.length;
-                if (updateCount) updateCount.textContent = this.diffResults.updates.length;
-                if (deleteCount) deleteCount.textContent = this.diffResults.deletes.length;
-
-                if (resultsContainer) {
-                    resultsContainer.style.display = 'block';
-                }
-                
-                this.initializeGanttChart();
-                
-                const totalChanges = this.diffResults.inserts.length + this.diffResults.updates.length + this.diffResults.deletes.length;
-                this.showSuccess(`Diff generated successfully! Found ${totalChanges} changes.`);
-            }
-
-            initializeGanttChart() {
-                const canvas = document.getElementById('ganttCanvas');
-                if (!canvas) return;
-
-                // Cleanup existing chart
-                if (this.ganttChart) {
-                    this.ganttChart.cleanup();
-                }
-
-                this.ganttChart = new GanttChart(canvas, this.diffResults, {
-                    onItemClick: (item) => this.showItemDetails(item)
-                });
-
-                // Setup resize observer
-                if (this.resizeObserver) {
-                    this.resizeObserver.disconnect();
-                }
-
-                this.resizeObserver = new ResizeObserver(() => {
-                    if (this.ganttChart) {
-                        requestAnimationFrame(() => {
-                            this.ganttChart.resize();
-                        });
-                    }
-                });
-
-                this.resizeObserver.observe(canvas.parentElement);
-            }
-
-            showItemDetails(item) {
-                const drawer = document.getElementById('detailDrawer');
-                const content = document.getElementById('drawerContent');
-                
-                if (!drawer || !content) return;
-
-                let html = `
-                    <div style="margin-bottom: 1rem;">
-                        <strong>Type:</strong> <span style="color: var(--${item.type}-color); font-weight: bold;">${item.type.toUpperCase()}</span><br>
-                        <strong>Primary Key:</strong> ${this.escapeHtml(String(item.key))}<br>
-                        <strong>Timestamp:</strong> ${item.timestamp.toLocaleString()}
-                    </div>
-                `;
-
-                if (item.type === 'update' && item.changes) {
-                    html += `
-                        <h4>Changes (${item.changes.length}):</h4>
-                        <table class="diff-table">
-                            <thead>
-                                <tr>
-                                    <th>Column</th>
-                                    <th>Old Value</th>
-                                    <th>New Value</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                    `;
-                    
-                    item.changes.forEach(change => {
-                        html += `
-                            <tr>
-                                <td>${this.escapeHtml(change.column)}</td>
-                                <td class="diff-removed">${this.escapeHtml(String(change.oldValue || ''))}</td>
-                                <td class="diff-added">${this.escapeHtml(String(change.newValue || ''))}</td>
-                            </tr>
-                        `;
-                    });
-                    
-                    html += `
-                            </tbody>
-                        </table>
-                    `;
-                } else {
-                    const data = item.data || item.newData || item.oldData;
-                    if (data) {
-                        html += `
-                            <h4>Row Data:</h4>
-                            <table class="diff-table">
-                                <thead>
-                                    <tr>
-                                        <th>Column</th>
-                                        <th>Value</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                        `;
-                        
-                        Object.entries(data).forEach(([key, value]) => {
-                            html += `
-                                <tr>
-                                    <td>${this.escapeHtml(key)}</td>
-                                    <td class="diff-${item.type === 'insert' ? 'added' : 'removed'}">${this.escapeHtml(String(value || ''))}</td>
-                                </tr>
-                            `;
-                        });
-                        
-                        html += `
-                                </tbody>
-                            </table>
-                        `;
-                    }
-                }
-
-                content.innerHTML = html;
-                drawer.classList.add('open');
-                drawer.setAttribute('aria-hidden', 'false');
-            }
-
-            closeDrawer() {
-                const drawer = document.getElementById('detailDrawer');
-                if (drawer) {
-                    drawer.classList.remove('open');
-                    drawer.setAttribute('aria-hidden', 'true');
-                }
-            }
-
-            showError(message) {
-                this.showMessage(message, 'error');
-            }
-
-            showSuccess(message) {
-                this.showMessage(message, 'success');
-            }
-
-            showMessage(message, type) {
-                const containerId = type === 'error' ? 'errorContainer' : 'successContainer';
-                const container = document.getElementById(containerId);
-                
-                if (!container) return;
-
-                const messageClass = type === 'error' ? 'error-message' : 'success-message';
-                container.innerHTML = `<div class="${messageClass}">${this.escapeHtml(message)}</div>`;
-                
-                // Auto-hide after 5 seconds
-                setTimeout(() => {
-                    if (container.innerHTML.includes(this.escapeHtml(message))) {
-                        container.innerHTML = '';
-                    }
-                }, 5000);
-            }
-
-            clearMessages() {
-                const errorContainer = document.getElementById('errorContainer');
-                const successContainer = document.getElementById('successContainer');
-                
-                if (errorContainer) errorContainer.innerHTML = '';
-                if (successContainer) successContainer.innerHTML = '';
-            }
-
-            escapeHtml(text) {
-                const div = document.createElement('div');
-                div.textContent = String(text);
-                return div.innerHTML;
-            }
+    <section id="results" style="display:none">
+      <div class="stats">
+        <div class="stat"><div id="insCount" class="num ins">0</div><div>Inserted</div></div>
+        <div class="stat"><div id="updCount" class="num upd">0</div><div>Updated</div></div>
+        <div class="stat"><div id="delCount" class="num del">0</div><div>Deleted</div></div>
+      </div>
+
+      <div class="gantt-wrap">
+        <div class="gantt-head">
+          <h3 style="margin:0">Timeline Visualization</h3>
+          <div class="legend">
+            <span><i class="dot ins"></i> Insert</span>
+            <span><i class="dot upd"></i> Update</span>
+            <span><i class="dot del"></i> Delete</span>
+          </div>
+        </div>
+        <canvas id="gantt" aria-label="Gantt chart of changes" role="img"></canvas>
+      </div>
+    </section>
+  </div>
+
+  <div id="drawer" class="drawer" role="dialog" aria-labelledby="drawerTitle" aria-hidden="true">
+    <div class="drawer-head">
+      <h3 id="drawerTitle" style="margin:0">Row Details</h3>
+      <button id="closeDrawer" class="x" aria-label="Close details">×</button>
+    </div>
+    <div id="drawerBody" class="drawer-body"></div>
+  </div>
+
+  <script>
+  (()=>{
+    'use strict';
+    /** Utilities **/
+    const $ = (id)=>document.getElementById(id);
+    const escapeHtml=(str)=>{const d=document.createElement('div');d.textContent=String(str);return d.innerHTML};
+    const fileSize=(b)=>{if(!b) return '0 B';const k=1024,u=['B','KB','MB','GB'];const i=Math.min(u.length-1,Math.floor(Math.log(b)/Math.log(k)));return `${(b/Math.pow(k,i)).toFixed(2)} ${u[i]}`};
+
+    function alertBox(type,msg){const host=$('alerts');host.innerHTML=`<div class="alert ${type}">${escapeHtml(msg)}</div>`;setTimeout(()=>{if(host.textContent?.includes(msg)) host.innerHTML='';},5000)}
+
+    /** CSV Parser (robust enough for quoted values + escaped quotes) **/
+    function splitCSVLine(line){
+      const out=[];let cur='';let q=false;for(let i=0;i<line.length;i++){
+        const ch=line[i];
+        if(ch==='"'){
+          if(q && line[i+1]==='"'){cur+='"';i++;} else {q=!q;}
+        } else if(ch===',' && !q){out.push(cur);cur='';}
+        else if(ch==='\r'){/* ignore */}
+        else {cur+=ch;}
+      }
+      out.push(cur);
+      return out;
+    }
+
+    function parseCSV(text, filename){
+      if(!text || !text.trim()) throw new Error('CSV file is empty');
+      // Normalize newlines and keep blank trailing fields; ignore purely empty rows
+      const rows = text.replace(/\uFEFF/g,'').split(/\n/).filter(r=>r.trim().length>0);
+      const headers = splitCSVLine(rows[0]).map(h=>h.trim());
+      if(headers.length===0) throw new Error('No headers found');
+      const seen = new Set();
+      for(const h of headers){if(seen.has(h)) throw new Error(`Duplicate header: ${h}`); seen.add(h)}
+      const data=[];
+      for(let i=1;i<rows.length;i++){
+        const vals = splitCSVLine(rows[i]);
+        if(vals.length!==headers.length){console.warn(`Row ${i+1}: expected ${headers.length} columns, got ${vals.length}`);continue}
+        const row={};
+        for(let c=0;c<headers.length;c++){row[headers[c]] = vals[c]===undefined ? '' : vals[c];}
+        data.push(row);
+      }
+      if(data.length===0) throw new Error('No valid data rows found');
+      return {headers, data, filename};
+    }
+
+    /** Diff + validation **/
+    function ensureUniquePK(rows, pk, label){
+      const set=new Set(); const dups=new Set(); let missing=false;
+      for(const r of rows){
+        const k=r[pk];
+        if(k===undefined || k===null || String(k).trim()==='') {missing=true; continue}
+        const s=String(k);
+        if(set.has(s)) dups.add(s); else set.add(s);
+      }
+      if(missing) throw new Error(`Missing/blank primary key values in ${label}`);
+      if(dups.size>0) throw new Error(`Duplicate primary keys in ${label}: ${[...dups].slice(0,5).join(', ')}${dups.size>5?'…':''}`);
+    }
+
+    function parseMaybeDate(v){
+      if(v===undefined||v===null) return null;
+      const s=String(v).trim();
+      if(!s) return null;
+      if(/^\d{13}$/.test(s)) { const d=new Date(parseInt(s,10)); return isNaN(d.getTime())?null:d; }
+      if(/^\d{10}$/.test(s)) { const d=new Date(parseInt(s,10)*1000); return isNaN(d.getTime())?null:d; }
+      const d=new Date(s); return isNaN(d.getTime())?null:d;
+    }
+
+    function diff(oldD,newD,pk,tsCol){
+      const oldMap=new Map(), newMap=new Map();
+      oldD.data.forEach(r=>oldMap.set(String(r[pk]),r));
+      newD.data.forEach(r=>newMap.set(String(r[pk]),r));
+
+      const res={inserts:[],updates:[],deletes:[],primaryKey:pk,timestampCol:tsCol||'',useOrdinalTime:false};
+      const items=[]; // collect to test timestamp quality
+
+      newMap.forEach((nRow,key)=>{
+        const oRow=oldMap.get(key);
+        if(!oRow){
+          const ts = tsCol ? parseMaybeDate(nRow[tsCol]) : null;
+          const item={key,timestamp:ts,data:nRow,type:'insert'}; res.inserts.push(item); items.push(item);
+        } else {
+          // Ignore PK and timestamp column when computing changes
+          const changes=[]; const skip=new Set([pk, tsCol].filter(Boolean));
+          const allCols = new Set([...Object.keys(oRow),...Object.keys(nRow)]);
+          allCols.forEach(col=>{ if(skip.has(col)) return; const a=oRow[col]??''; const b=nRow[col]??''; if(a!==b) changes.push({column:col,oldValue:a,newValue:b}); });
+          if(changes.length){
+            const ts = tsCol ? parseMaybeDate(nRow[tsCol]) : null;
+            const item={key,timestamp:ts,oldData:oRow,newData:nRow,changes,type:'update'}; res.updates.push(item); items.push(item);
+          }
         }
+      });
+      oldMap.forEach((oRow,key)=>{ if(!newMap.has(key)){ const ts = tsCol ? parseMaybeDate(oRow[tsCol]) : null; const item={key,timestamp:ts,data:oRow,type:'delete'}; res.deletes.push(item); items.push(item);} });
 
-        class GanttChart {
-            constructor(canvas, data, options = {}) {
-                this.canvas = canvas;
-                this.ctx = canvas.getContext('2d');
-                this.data = data;
-                this.options = {
-                    onItemClick: null,
-                    ...options
-                };
-                
-                this.items = [];
-                this.padding = { top: 40, right: 40, bottom: 60, left: 120 };
-                this.barHeight = 20;
-                this.barSpacing = 5;
-                this.colors = {
-                    insert: '#28a745',
-                    update: '#ffc107',
-                    delete: '#dc3545'
-                };
-
-                this.pixelRatio = window.devicePixelRatio || 1;
-                this.clickListener = null;
-                
-                this.prepareData();
-                this.setupEventListeners();
-                this.render();
-            }
-
-            setupEventListeners() {
-                this.clickListener = (e) => {
-                    const rect = this.canvas.getBoundingClientRect();
-                    const x = (e.clientX - rect.left) * this.pixelRatio;
-                    const y = (e.clientY - rect.top) * this.pixelRatio;
-                    const item = this.getItemAt(x, y);
-                    
-                    if (item && this.options.onItemClick) {
-                        this.options.onItemClick(item);
-                    }
-                };
-
-                this.canvas.addEventListener('click', this.clickListener);
-            }
-
-            cleanup() {
-                if (this.clickListener) {
-                    this.canvas.removeEventListener('click', this.clickListener);
-                    this.clickListener = null;
-                }
-            }
-
-            prepareData() {
-                this.items = [];
-                
-                if (!this.data) return;
-
-                // Combine all items with type
-                if (this.data.inserts) {
-                    this.data.inserts.forEach(item => {
-                        this.items.push({ ...item, type: 'insert' });
-                    });
-                }
-                
-                if (this.data.updates) {
-                    this.data.updates.forEach(item => {
-                        this.items.push({ ...item, type: 'update' });
-                    });
-                }
-                
-                if (this.data.deletes) {
-                    this.data.deletes.forEach(item => {
-                        this.items.push({ ...item, type: 'delete' });
-                    });
-                }
-
-                // Sort by timestamp
-                this.items.sort((a, b) => a.timestamp - b.timestamp);
-                
-                this.calculateDimensions();
-            }
-
-            calculateDimensions() {
-                if (this.items.length === 0) {
-                    this.keys = [];
-                    this.minTime = Date.now();
-                    this.maxTime = Date.now();
-                    this.timeRange = 1;
-                    return;
-                }
-
-                const timestamps = this.items.map(item => item.timestamp.getTime()).filter(t => !isNaN(t));
-                
-                this.minTime = Math.min(...timestamps);
-                this.maxTime = Math.max(...timestamps);
-                this.timeRange = Math.max(this.maxTime - this.minTime, 1);
-
-                // Group items by primary key for Y positioning
-                this.keyGroups = {};
-                this.items.forEach(item => {
-                    const key = String(item.key);
-                    if (!this.keyGroups[key]) {
-                        this.keyGroups[key] = [];
-                    }
-                    this.keyGroups[key].push(item);
-                });
-
-                this.keys = Object.keys(this.keyGroups).sort();
-            }
-
-            resize() {
-                if (!this.canvas.parentElement) return;
-
-                const container = this.canvas.parentElement;
-                const rect = container.getBoundingClientRect();
-                
-                const width = rect.width - 2; // Account for border
-                const height = Math.max(400, this.keys.length * (this.barHeight + this.barSpacing) + this.padding.top + this.padding.bottom);
-                
-                // Set display size
-                this.canvas.style.width = width + 'px';
-                this.canvas.style.height = height + 'px';
-                
-                // Set canvas size accounting for device pixel ratio
-                this.canvas.width = width * this.pixelRatio;
-                this.canvas.height = height * this.pixelRatio;
-                
-                // Scale context for crisp rendering
-                this.ctx.scale(this.pixelRatio, this.pixelRatio);
-                
-                this.render();
-            }
-
-            render() {
-                if (!this.canvas.width || !this.canvas.height) {
-                    this.resize();
-                    return;
-                }
-
-                this.ctx.clearRect(0, 0, this.canvas.width / this.pixelRatio, this.canvas.height / this.pixelRatio);
-                
-                if (this.items.length === 0) {
-                    this.renderEmptyState();
-                    return;
-                }
-
-                this.drawAxes();
-                this.drawBars();
-            }
-
-            renderEmptyState() {
-                const width = this.canvas.width / this.pixelRatio;
-                const height = this.canvas.height / this.pixelRatio;
-                
-                this.ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary');
-                this.ctx.font = '16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-                this.ctx.textAlign = 'center';
-                this.ctx.textBaseline = 'middle';
-                this.ctx.fillText('No changes to display', width / 2, height / 2);
-            }
-
-            drawAxes() {
-                const ctx = this.ctx;
-                const width = this.canvas.width / this.pixelRatio;
-                const height = this.canvas.height / this.pixelRatio;
-                
-                const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim();
-                const borderColor = getComputedStyle(document.documentElement).getPropertyValue('--border-color').trim();
-                
-                ctx.strokeStyle = borderColor;
-                ctx.fillStyle = textColor;
-                ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-
-                // Y-axis (Primary keys)
-                ctx.textAlign = 'right';
-                ctx.textBaseline = 'middle';
-                
-                this.keys.forEach((key, index) => {
-                    const y = this.padding.top + index * (this.barHeight + this.barSpacing) + this.barHeight / 2;
-                    const truncatedKey = String(key).length > 15 ? String(key).substring(0, 12) + '...' : String(key);
-                    ctx.fillText(truncatedKey, this.padding.left - 10, y);
-                });
-
-                // X-axis (Time)
-                if (this.timeRange > 0 && this.items.length > 0) {
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'top';
-                    
-                    const steps = Math.min(5, this.items.length);
-                    const chartWidth = width - this.padding.left - this.padding.right;
-                    
-                    for (let i = 0; i <= steps; i++) {
-                        const time = this.minTime + (this.timeRange * i / steps);
-                        const x = this.padding.left + (chartWidth * i / steps);
-                        const date = new Date(time);
-                        
-                        let dateString;
-                        if (this.timeRange < 24 * 60 * 60 * 1000) { // Less than a day
-                            dateString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        } else {
-                            dateString = date.toLocaleDateString();
-                        }
-                        
-                        ctx.fillText(dateString, x, height - this.padding.bottom + 10);
-                    }
-                }
-
-                // Draw axis lines
-                ctx.beginPath();
-                ctx.moveTo(this.padding.left, this.padding.top);
-                ctx.lineTo(this.padding.left, height - this.padding.bottom);
-                ctx.moveTo(this.padding.left, height - this.padding.bottom);
-                ctx.lineTo(width - this.padding.right, height - this.padding.bottom);
-                ctx.stroke();
-            }
-
-            drawBars() {
-                const ctx = this.ctx;
-                const width = this.canvas.width / this.pixelRatio;
-                const chartWidth = width - this.padding.left - this.padding.right;
-                
-                if (chartWidth <= 0) return;
-                
-                this.items.forEach(item => {
-                    const keyIndex = this.keys.indexOf(String(item.key));
-                    if (keyIndex === -1) return;
-                    
-                    const y = this.padding.top + keyIndex * (this.barHeight + this.barSpacing);
-                    
-                    let x = this.padding.left;
-                    if (this.timeRange > 0) {
-                        const timeOffset = (item.timestamp.getTime() - this.minTime) / this.timeRange;
-                        x = this.padding.left + timeOffset * chartWidth;
-                    }
-                    
-                    const barWidth = Math.max(6, Math.min(20, chartWidth / Math.max(this.items.length, 10)));
-                    
-                    // Ensure bar stays within bounds
-                    const actualX = Math.max(this.padding.left, Math.min(x - barWidth / 2, width - this.padding.right - barWidth));
-                    
-                    ctx.fillStyle = this.colors[item.type] || '#666666';
-                    ctx.fillRect(actualX, y, barWidth, this.barHeight);
-                    
-                    // Store position for click detection (accounting for pixel ratio)
-                    item._bounds = {
-                        x: actualX * this.pixelRatio,
-                        y: y * this.pixelRatio,
-                        width: barWidth * this.pixelRatio,
-                        height: this.barHeight * this.pixelRatio
-                    };
-                });
-            }
-
-            getItemAt(x, y) {
-                return this.items.find(item => {
-                    if (!item._bounds) return false;
-                    const bounds = item._bounds;
-                    return x >= bounds.x && x <= bounds.x + bounds.width &&
-                           y >= bounds.y && y <= bounds.y + bounds.height;
-                });
-            }
+      // Decide whether to use real timestamps or ordinal positions
+      if(!tsCol){ res.useOrdinalTime=true; }
+      else {
+        const valid = items.filter(i=>i.timestamp instanceof Date && !isNaN(i.timestamp));
+        const ratio = items.length ? valid.length/items.length : 1;
+        if(ratio<0.8){ // too many bad timestamps; fall back to ordinal
+          res.useOrdinalTime=true;
+          items.forEach(i=>i.timestamp=null);
         }
+      }
 
-        // Initialize the application
-        let app;
-        
-        document.addEventListener('DOMContentLoaded', () => {
-            app = new DiffGanttApp();
-        });
+      // Assign ordinal index for charting if needed (stable ordering: by type then by PK)
+      if(res.useOrdinalTime){
+        const ordered=[...res.deletes,...res.updates,...res.inserts]; // any stable order
+        ordered.forEach((it,idx)=>{it._ord=idx});
+      }
+      return res;
+    }
 
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', () => {
-            if (app) {
-                app.cleanup();
-            }
+    /** Gantt Chart **/
+    class Gantt{
+      constructor(canvas,data,{onClick}={}){
+        this.canvas=canvas; this.ctx=canvas.getContext('2d'); this.data=data; this.onClick=onClick;
+        this.items=[]; this.padding={top:40,right:40,bottom:60,left:140}; this.barH=20; this.gap=6; this.ratio=window.devicePixelRatio||1;
+        this.colors={insert:getComputedStyle(document.documentElement).getPropertyValue('--ins').trim()||'#22c55e',update:getComputedStyle(document.documentElement).getPropertyValue('--upd').trim()||'#f59e0b',delete:getComputedStyle(document.documentElement).getPropertyValue('--del').trim()||'#ef4444'};
+        this._click=null; this._prepare(); this._listen(); this.resize();
+      }
+      _prepare(){
+        const all=[]; ['inserts','updates','deletes'].forEach(t=>{(this.data[t]||[]).forEach(it=>all.push({...it}))});
+        if(!this.data.useOrdinalTime){all.sort((a,b)=>a.timestamp-b.timestamp)} else {all.sort((a,b)=>a._ord-b._ord)}
+        this.items=all; this._groupByKey(); this._computeTime();
+      }
+      _groupByKey(){
+        const groups={}; this.items.forEach(it=>{const k=String(it.key); (groups[k]||(groups[k]=[])).push(it)});
+        this.keys=Object.keys(groups).sort(); this.groups=groups;
+      }
+      _computeTime(){
+        if(this.data.useOrdinalTime){ this.min=0; this.max=Math.max(1,(this.items.length-1)); this.range=this.max-this.min; return; }
+        const times=this.items.map(i=>i.timestamp?.getTime()).filter(t=>typeof t==='number' && !isNaN(t));
+        this.min=Math.min(...times); this.max=Math.max(...times); this.range=Math.max(1,this.max-this.min);
+      }
+      _listen(){
+        this._click=(e)=>{
+          const rect=this.canvas.getBoundingClientRect();
+          const x=(e.clientX-rect.left)*this.ratio; const y=(e.clientY-rect.top)*this.ratio; const hit=this._hit(x,y);
+          if(hit && this.onClick) this.onClick(hit);
+        };
+        this.canvas.addEventListener('click',this._click);
+      }
+      cleanup(){ if(this._click){ this.canvas.removeEventListener('click',this._click); this._click=null; } }
+      resize(){
+        const parent=this.canvas.parentElement; if(!parent) return; const rect=parent.getBoundingClientRect();
+        const cssW=Math.max(320,rect.width-2); const cssH=Math.max(380, this.keys.length*(this.barH+this.gap)+this.padding.top+this.padding.bottom);
+        this.canvas.style.width=cssW+'px'; this.canvas.style.height=cssH+'px';
+        // reset transform before resizing to avoid compounding scales
+        this.ctx.setTransform(1,0,0,1,0,0);
+        this.canvas.width=Math.floor(cssW*this.ratio); this.canvas.height=Math.floor(cssH*this.ratio);
+        this.ctx.scale(this.ratio,this.ratio);
+        this.render();
+      }
+      render(){
+        const w=this.canvas.width/this.ratio, h=this.canvas.height/this.ratio; const ctx=this.ctx;
+        ctx.clearRect(0,0,w,h);
+        if(this.items.length===0){ ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--text-2'); ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='16px Inter,ui-sans-serif'; ctx.fillText('No changes to display',w/2,h/2); return; }
+        this._axes(w,h); this._bars(w,h);
+      }
+      _axes(w,h){
+        const ctx=this.ctx; const text=getComputedStyle(document.documentElement).getPropertyValue('--text-1').trim(); const border=getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
+        ctx.strokeStyle=border; ctx.fillStyle=text; ctx.font='12px Inter,ui-sans-serif';
+        // y labels
+        ctx.textAlign='right'; ctx.textBaseline='middle';
+        this.keys.forEach((k,i)=>{const y=this.padding.top+i*(this.barH+this.gap)+this.barH/2; const lab=String(k).length>18?String(k).slice(0,15)+'…':String(k); ctx.fillText(lab,this.padding.left-10,y)});
+        // x labels
+        ctx.textAlign='center'; ctx.textBaseline='top';
+        const steps=Math.min(6, Math.max(3,this.items.length)); const chartW=w-this.padding.left-this.padding.right;
+        for(let i=0;i<=steps;i++){
+          const t=this.min + (this.range * i/steps);
+          const x=this.padding.left + chartW * (i/steps);
+          let label='';
+          if(this.data.useOrdinalTime){ label = `#${Math.round(t)+1}`; }
+          else { const d=new Date(t); label = (this.range<86400000)? d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : d.toLocaleDateString(); }
+          ctx.fillText(label, x, h - this.padding.bottom + 8);
+        }
+        // axes lines
+        ctx.beginPath(); ctx.moveTo(this.padding.left,this.padding.top); ctx.lineTo(this.padding.left,h-this.padding.bottom); ctx.moveTo(this.padding.left,h-this.padding.bottom); ctx.lineTo(w-this.padding.right,h-this.padding.bottom); ctx.stroke();
+      }
+      _bars(w,h){
+        const ctx=this.ctx; const chartW=w-this.padding.left-this.padding.right; if(chartW<=0) return;
+        this.items.forEach(it=>{
+          const i=this.keys.indexOf(String(it.key)); if(i<0) return; const y=this.padding.top+i*(this.barH+this.gap);
+          let x=this.padding.left; if(this.data.useOrdinalTime){ const frac=(it._ord - this.min)/(this.range||1); x=this.padding.left + frac*chartW; } else { const frac=((it.timestamp?.getTime?.()??this.min) - this.min)/(this.range||1); x=this.padding.left + frac*chartW; }
+          const bw=Math.max(6, Math.min(22, chartW/Math.max(this.items.length,10))); const drawX=Math.max(this.padding.left, Math.min(x-bw/2, w-this.padding.right-bw));
+          const color = this.colors[it.type] || '#999';
+          ctx.fillStyle=color; ctx.fillRect(drawX,y,bw,this.barH);
+          it._bounds = {x:drawX*this.ratio, y:y*this.ratio, w:bw*this.ratio, h:this.barH*this.ratio};
         });
-    </script>
+      }
+      _hit(x,y){ return this.items.find(it=>{const b=it._bounds; return b && x>=b.x && x<=b.x+b.w && y>=b.y && y<=b.y+b.h}); }
+    }
+
+    /** App **/
+    class App{
+      constructor(){
+        this.cfg={maxSize:10*1024*1024};
+        this.old=null; this.new=null; this.result=null; this.chart=null; this.resizeObs=null;
+        this._bind(); this._dragDrop('oldArea','oldInput','old'); this._dragDrop('newArea','newInput','new');
+        $('closeDrawer').addEventListener('click',()=>this._closeDrawer());
+        document.addEventListener('keydown',e=>{if(e.key==='Escape') this._closeDrawer();});
+      }
+      _bind(){
+        $('oldArea').addEventListener('click',()=>$('oldInput').click());
+        $('newArea').addEventListener('click',()=>$('newInput').click());
+        $('oldInput').addEventListener('change',e=>this._handleFile(e.target.files[0],'old'));
+        $('newInput').addEventListener('change',e=>this._handleFile(e.target.files[0],'new'));
+        $('go').addEventListener('click',()=>this._go());
+      }
+      _dragDrop(areaId,inputId,label){
+        const area=$(areaId), input=$(inputId);
+        ['dragenter','dragover'].forEach(ev=>area.addEventListener(ev,e=>{e.preventDefault(); area.classList.add('dragover');}));
+        ;['dragleave','drop'].forEach(ev=>area.addEventListener(ev,e=>{e.preventDefault(); if(ev==='drop'){const f=e.dataTransfer?.files?.[0]; if(f) { input.files=e.dataTransfer.files; this._handleFile(f,label);} } area.classList.remove('dragover'); }));
+      }
+      async _handleFile(file,which){ try{
+        if(!file) return; if(!file.name.toLowerCase().endsWith('.csv')) throw new Error('Only .csv files are supported'); if(file.size>this.cfg.maxSize) throw new Error('File too large (max 10 MB)');
+        this._info(which,`<strong>${escapeHtml(file.name)}</strong> • ${fileSize(file.size)}`,true);
+        const text=await file.text(); const parsed=parseCSV(text,file.name); if(which==='old') this.old=parsed; else this.new=parsed; if(this.old && this.new) this._setupConfig();
+      }catch(err){ alertBox('error',`Error processing ${file?.name||''}: ${err.message}`); this._info(which,'',false);} }
+      _info(which,html,show){const el=$(which==='old'?'oldInfo':'newInfo'); el.style.display=show?'block':'none'; el.innerHTML=show?html:''}
+      _setupConfig(){ const pk=$('pkSelect'), ts=$('tsSelect'); pk.innerHTML='<option value="">Select primary key…</option>'; ts.innerHTML='<option value="">Select timestamp…</option>';
+        const common=this.old.headers.filter(h=>this.new.headers.includes(h)); if(common.length===0){alertBox('error','No common columns between the two CSVs.'); return;}
+        common.forEach(h=>{ const o1=document.createElement('option');o1.value=h;o1.textContent=h; pk.appendChild(o1); const o2=document.createElement('option');o2.value=h;o2.textContent=h; ts.appendChild(o2);});
+        // auto detect pk and timestamp
+        const pkRe=/^(id|key|pk|primary.*key|.*_id|.*Id|.*ID)$/i; const tsRe=/^(date|time|timestamp|created.*at|updated.*at|.*_at|.*date|.*time)$/i;
+        const pkGuess=common.find(h=>pkRe.test(h)); if(pkGuess) pk.value=pkGuess; const tsGuess=common.find(h=>tsRe.test(h)); if(tsGuess) ts.value=tsGuess;
+        $('config').style.display='block';
+      }
+      async _go(){ try{
+        const pk=$('pkSelect').value; const ts=$('tsSelect').value;
+        if(!pk){ alertBox('error','Please select a primary key column.'); return; }
+        $('loading').style.display='block'; $('results').style.display='none';
+        // validation
+        ensureUniquePK(this.old.data, pk, 'old dataset'); ensureUniquePK(this.new.data, pk, 'new dataset');
+        this.result = diff(this.old,this.new,pk,ts||'');
+        $('insCount').textContent=this.result.inserts.length; $('updCount').textContent=this.result.updates.length; $('delCount').textContent=this.result.deletes.length;
+        $('results').style.display='block'; this._chart(); alertBox('success',`Diff generated successfully! Found ${this.result.inserts.length+this.result.updates.length+this.result.deletes.length} changes.`);
+      }catch(err){ alertBox('error',`Error calculating diff: ${err.message}`);} finally{ $('loading').style.display='none'; } }
+      _chart(){ const canvas=$('gantt'); if(this.chart) this.chart.cleanup(); this.chart=new Gantt(canvas,this.result,{onClick:(item)=>this._details(item)});
+        if(this.resizeObs) this.resizeObs.disconnect(); this.resizeObs=new ResizeObserver(()=>this.chart?.resize()); this.resizeObs.observe(canvas.parentElement); }
+      _details(item){ const drawer=$('drawer'), body=$('drawerBody');
+        const ts = item.timestamp instanceof Date && !isNaN(item.timestamp) ? item.timestamp.toLocaleString() : (this.result.useOrdinalTime?`Position #${(item._ord??0)+1}`:'N/A');
+        let html = `<div style="margin-bottom:10px"><strong>Type:</strong> <span style="font-weight:700;color:${item.type==='insert'?'var(--ins)':item.type==='update'?'var(--upd)':'var(--del)'}">${item.type.toUpperCase()}</span><br><strong>Primary Key:</strong> ${escapeHtml(item.key)}<br><strong>Timestamp:</strong> ${escapeHtml(ts)}</div>`;
+        if(item.type==='update' && item.changes?.length){
+          html += `<h4 style="margin:8px 0">Changes (${item.changes.length})</h4><table><thead><tr><th>Column</th><th>Old</th><th>New</th></tr></thead><tbody>`;
+          item.changes.forEach(c=>{ html+=`<tr><td>${escapeHtml(c.column)}</td><td class="removed">${escapeHtml(c.oldValue??'')}</td><td class="added">${escapeHtml(c.newValue??'')}</td></tr>`; });
+          html+='</tbody></table>';
+        } else {
+          const data = item.data || item.newData || item.oldData || {};
+          html += `<h4 style="margin:8px 0">Row Data</h4><table><thead><tr><th>Column</th><th>Value</th></tr></thead><tbody>`;
+          Object.entries(data).forEach(([k,v])=>{ const cls=item.type==='insert'?'added':'removed'; html+=`<tr><td>${escapeHtml(k)}</td><td class="${cls}">${escapeHtml(v??'')}</td></tr>`; });
+          html+='</tbody></table>';
+        }
+        body.innerHTML = html; drawer.classList.add('open'); drawer.setAttribute('aria-hidden','false');
+      }
+      _closeDrawer(){ const d=$('drawer'); d.classList.remove('open'); d.setAttribute('aria-hidden','true'); }
+    }
+
+    // bootstrap
+    const app = new App();
+    window.addEventListener('beforeunload',()=>{ app.chart?.cleanup(); app.resizeObs?.disconnect(); });
+  })();
+  </script>
 </body>
 </html>
